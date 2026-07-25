@@ -23,11 +23,11 @@ export interface VadOpts {
   sampleRate: number;
   /** limiar de energia para considerar "fala" (padrão 0.01) */
   limiar?: number;
-  /** silêncio contínuo que fecha uma fala, em ms (padrão 600) */
+  /** silêncio contínuo que fecha uma fala, em ms (padrão 700) */
   silencioMs?: number;
-  /** duração mínima para emitir uma fala, em ms (padrão 250) */
+  /** duração mínima para emitir uma fala, em ms (padrão 700) */
   minFalaMs?: number;
-  /** duração máxima antes de forçar corte, em ms (padrão 15000) */
+  /** duração máxima antes de forçar corte, em ms (padrão 25000) */
   maxFalaMs?: number;
 }
 
@@ -47,11 +47,14 @@ export class SegmentadorVAD {
   private duracaoBufMs = 0;
 
   constructor(opts: VadOpts) {
+    // Os padrões são calibrados para o que o Whisper aceita bem, não para
+    // "detectar som": trechos de 0,25 s costumam ser ruído e, isolados, o
+    // modelo inventa texto. Fechar tarde é melhor que picotar uma frase.
     this.opts = {
       limiar: 0.01,
-      silencioMs: 600,
-      minFalaMs: 250,
-      maxFalaMs: 15000,
+      silencioMs: 700,
+      minFalaMs: 700,
+      maxFalaMs: 25000,
       ...opts,
     };
   }

@@ -49,10 +49,18 @@ describe("SegmentadorVAD", () => {
 
   it("flush fecha a fala em andamento", () => {
     const vad = new SegmentadorVAD({ sampleRate: SR });
-    for (let i = 0; i < 5; i++) vad.push(frame(0.5, 100), i * 100);
+    // 1,2 s: acima do minFalaMs padrão (700 ms)
+    for (let i = 0; i < 12; i++) vad.push(frame(0.5, 100), i * 100);
     const u = vad.flush();
     expect(u).not.toBeNull();
     expect(u!.pcm.length).toBeGreaterThan(0);
     expect(vad.flush()).toBeNull(); // nada sobrando
+  });
+
+  it("padrões descartam fragmentos curtos (o Whisper alucina com eles)", () => {
+    const vad = new SegmentadorVAD({ sampleRate: SR });
+    // 400 ms de fala: som real, mas curto demais para transcrever com contexto
+    for (let i = 0; i < 4; i++) vad.push(frame(0.5, 100), i * 100);
+    expect(vad.flush()).toBeNull();
   });
 });

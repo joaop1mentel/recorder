@@ -22,14 +22,18 @@ import { baixar } from "./download.js";
 
 type Estado = "idle" | "gravando" | "pausado" | "transcrevendo" | "pronto";
 
-/**
- * No celular o Whisper é bem mais lento que no desktop, então `tiny` é o padrão.
- * `base` fica disponível para quem topar esperar mais em troca de precisão.
- */
 const MODELOS = [
-  { id: "Xenova/whisper-tiny", nome: "Rápido (recomendado no celular)" },
-  { id: "Xenova/whisper-base", nome: "Preciso (bem mais lento)" },
+  { id: "Xenova/whisper-tiny", nome: "Rápido (menos preciso)" },
+  { id: "Xenova/whisper-base", nome: "Preciso (recomendado)" },
 ];
+
+/**
+ * Com GPU o `base` roda tranquilo e transcreve bem melhor — especialmente em
+ * português, onde o `tiny` erra muito. Sem GPU tudo roda no WASM da CPU, e aí o
+ * `tiny` é o único que termina em tempo aceitável.
+ */
+const TEM_GPU = typeof navigator !== "undefined" && "gpu" in navigator;
+const MODELO_PADRAO = TEM_GPU ? "Xenova/whisper-base" : "Xenova/whisper-tiny";
 
 const storage = new IndexedDbStorage();
 const deposito = new IndexedDbDeposito();
@@ -58,7 +62,7 @@ function mensagemErro(e: unknown): string {
 
 export function App() {
   const [origem, setOrigem] = useState<Idioma>("pt");
-  const [modelo, setModelo] = useState(MODELOS[0]!.id);
+  const [modelo, setModelo] = useState(MODELO_PADRAO);
 
   const [estado, setEstado] = useState<Estado>("idle");
   const [falas, setFalas] = useState(0);
@@ -235,6 +239,11 @@ export function App() {
               ))}
             </select>
           </label>
+          <p className="dica">
+            {TEM_GPU
+              ? "⚡ Acelerado por GPU neste aparelho."
+              : "🐢 Sem GPU neste aparelho — a transcrição roda na CPU e demora bem mais."}
+          </p>
         </section>
       )}
 
@@ -302,12 +311,14 @@ export function App() {
                 <div className="bar azul" style={{ width: `${pct}%` }} />
               </div>
               <p className="dica">
-                {progresso.feitas} de {progresso.total} trechos ({pct}%)
+                {progresso.feitas} de {progresso.total} blocos ({pct}%)
               </p>
             </>
           )}
           <p className="dica">
-            Pode demorar alguns minutos. Mantenha o app aberto.
+            {TEM_GPU
+              ? "Mantenha o app aberto."
+              : "Sem GPU, pode demorar vários minutos. Mantenha o app aberto."}
           </p>
         </section>
       )}

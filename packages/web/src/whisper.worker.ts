@@ -9,15 +9,29 @@ import { pipeline, env } from "@huggingface/transformers";
  * quebraria assim que o layout de saída de um dos builds mudasse.
  */
 
-type SaidaAsr = { text?: string } | Array<{ text?: string }>;
+/** Um trecho com tempo, como o Whisper devolve quando `return_timestamps` está ligado. */
+export interface TrechoAsr {
+  /** [início, fim] em SEGUNDOS, relativos ao áudio enviado; o fim pode vir nulo */
+  timestamp: [number, number | null];
+  text: string;
+}
+type SaidaAsr = { text?: string; chunks?: TrechoAsr[] };
 type AsrFn = (
   audio: Float32Array,
-  opts?: { language?: string; task?: string },
-) => Promise<SaidaAsr>;
+  opts?: Record<string, unknown>,
+) => Promise<SaidaAsr | SaidaAsr[]>;
 
 let asr: Promise<AsrFn> | null = null;
 let modelId = "Xenova/whisper-base";
 let ortConfigurado = false;
+
+/**
+ * WebGPU dá de 5 a 10x sobre o WASM no Whisper. É padrão no Chrome Android 12+
+ * e no desktop; onde não existir, caímos no WASM sem alarde.
+ */
+function temWebGPU(): boolean {
+  return typeof navigator !== "undefined" && "gpu" in navigator;
+}
 
 function configurarOrt(ortBase: string): void {
   if (ortConfigurado) return;
@@ -38,10 +52,21 @@ function configurarOrt(ortBase: string): void {
 
 function getAsr(): Promise<AsrFn> {
   if (!asr) {
-    asr = pipeline(
-      "automatic-speech-recognition",
-      modelId,
-    ) as unknown as Promise<AsrFn>;
+    asr = pipeline("automatic-speech-recognition", modelId, {
+      device: temWebGPU() ? "webgpu" : "wasm",
+      /**
+       * Quantização híbrida: encoder em fp32, decoder em q4.
+       *
+       * O padrão do WASM é q8 em tudo, e é ruim aqui: o ruído de quantização no
+       * encoder se propaga por todo o decoder e piora a transcrição. Esta é a
+       * combinação usada pelo whisper-web (do autor do transformers.js) — mais
+       * precisa E menor que o q8 completo.
+       */
+      dtype: {
+        encoder_model: "fp32",
+        decoder_model_merged: "q4",
+      },
+    } as Parameters<typeof pipeline>[2]) as unknown as Promise<AsrFn>;
   }
   return asr;
 }
@@ -67,7 +92,13 @@ self.onmessage = async (e: MessageEvent<MsgIn>) => {
         asr = null; // troca de modelo
       }
       await getAsr();
-      (self as unknown as Worker).postMessage({ id, ok: true });
+      // devolve o device para a UI poder explicar a lentidão em vez de deixar
+      // o usuário no escuro achando que o app é ruim
+      (self as unknown as Worker).postMessage({
+        id,
+        ok: true,
+        device: temWebGPU() ? "webgpu" : "wasm",
+      });
       return;
     }
     if (type === "transcribe") {
@@ -75,11 +106,24 @@ self.onmessage = async (e: MessageEvent<MsgIn>) => {
       const out = await model(payload.pcm!, {
         language: payload.language,
         task: "transcribe",
+        // Janela de 30s com 5s de sobreposição: é o formato em que o Whisper foi
+        // treinado, e o stride evita perder palavras na emenda entre janelas.
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        // timestamps permitem quebrar a janela de volta em linhas curtas
+        return_timestamps: true,
+        force_full_sequences: false,
+        // decodificação gulosa: determinística e mais rápida
+        top_k: 0,
+        do_sample: false,
       });
-      const text = Array.isArray(out)
-        ? out.map((o) => o.text ?? "").join(" ")
-        : (out.text ?? "");
-      (self as unknown as Worker).postMessage({ id, ok: true, text: text.trim() });
+      const saida = Array.isArray(out) ? out[0] : out;
+      (self as unknown as Worker).postMessage({
+        id,
+        ok: true,
+        text: (saida?.text ?? "").trim(),
+        chunks: saida?.chunks ?? null,
+      });
     }
   } catch (err) {
     (self as unknown as Worker).postMessage({

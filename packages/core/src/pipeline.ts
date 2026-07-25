@@ -1,4 +1,5 @@
 import { AtribuidorFalantes } from "./falantes.js";
+import { agruparEmJanelas, type OpcoesJanela } from "./janelas.js";
 import type { Idioma } from "./idiomas.js";
 import type {
   AudioCapture,
@@ -219,30 +220,27 @@ export async function transcreverPendentes(
     rotulador?: RotuladorFalante;
     /** true quando houve mais de uma fonte de áudio (reunião) */
     comFalantes?: boolean;
+    janela?: OpcoesJanela;
   } = {},
 ): Promise<Session> {
-  const falas = (await deposito.listar(session.id)).sort((a, b) => a.t0 - b.t0);
+  const falas = await deposito.listar(session.id);
+  // Agrupar antes de transcrever é o que salva a precisão: o Whisper erra muito
+  // com fragmentos soltos de 1-2 s, mas vai bem com janelas de ~30 s.
+  const janelas = agruparEmJanelas(falas, opts.janela);
   const falantes = new AtribuidorFalantes(opts.rotulador);
-  opts.onProgresso?.({ feitas: 0, total: falas.length });
+  opts.onProgresso?.({ feitas: 0, total: janelas.length });
 
-  for (let i = 0; i < falas.length; i++) {
-    const fala = falas[i]!;
-    const segs = await transcriber.transcribe(
-      {
-        pcm: paraFloat32(fala.pcm),
-        sampleRate: fala.sampleRate,
-        t0: fala.t0,
-      },
-      session.idiomaOrig,
-    );
+  for (let i = 0; i < janelas.length; i++) {
+    const janela = janelas[i]!;
+    const segs = await transcriber.transcribe(janela.chunk, session.idiomaOrig);
     for (const seg of segs) {
       if (!seg.textoOrig.trim()) continue;
       if (opts.comFalantes) {
-        seg.falante = falantes.atribuir(fala.fonte, seg.t0, seg.t1);
+        seg.falante = falantes.atribuir(janela.fonte, seg.t0, seg.t1);
       }
       session.segments.push(seg);
     }
-    opts.onProgresso?.({ feitas: i + 1, total: falas.length });
+    opts.onProgresso?.({ feitas: i + 1, total: janelas.length });
   }
 
   session.segments.sort((a, b) => a.t0 - b.t0);

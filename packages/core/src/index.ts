@@ -3,6 +3,7 @@ export * from "./idiomas.js";
 export * from "./segments.js";
 export * from "./ports.js";
 export * from "./falantes.js";
+export * from "./janelas.js";
 export * from "./session/estado.js";
 export * from "./vad.js";
 export * from "./pipeline.js";

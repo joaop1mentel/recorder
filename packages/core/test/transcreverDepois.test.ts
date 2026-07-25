@@ -63,13 +63,41 @@ describe('modo "transcrever depois"', () => {
     let i = 0;
     await transcreverPendentes(
       s,
-      new FakeTranscriber(() => `fala ${++i}`),
+      new FakeTranscriber(() => `janela ${++i}`),
       deposito,
       { onProgresso: (x) => progresso.push(`${x.feitas}/${x.total}`) },
     );
 
-    expect(s.segments.map((x) => x.textoOrig)).toEqual(["fala 1", "fala 2"]);
-    expect(progresso).toEqual(["0/2", "1/2", "2/2"]);
+    // As duas falas são vizinhas, então viram UMA janela e uma única chamada ao
+    // Whisper — é justamente isso que corrige a precisão.
+    expect(s.segments.map((x) => x.textoOrig)).toEqual(["janela 1"]);
+    expect(progresso).toEqual(["0/1", "1/1"]);
+  });
+
+  it("falas separadas por pausa longa viram janelas distintas", async () => {
+    const deposito = new MemoryDeposito();
+    const p = new Pipeline({
+      capture: new FakeCapture([
+        chunkSintetico(0, 0.5),
+        chunkSintetico(60_000, 0.5), // 1 min depois
+      ]),
+      transcriber: new FakeTranscriber(() => ""),
+      translator: new FakeTranslator(),
+      idiomaOrig: "pt",
+      idiomaAlvo: "en",
+      modo: "depois",
+      deposito,
+    });
+    await p.start();
+    const s = await p.stop();
+
+    let i = 0;
+    await transcreverPendentes(
+      s,
+      new FakeTranscriber(() => `janela ${++i}`),
+      deposito,
+    );
+    expect(s.segments.map((x) => x.textoOrig)).toEqual(["janela 1", "janela 2"]);
   });
 
   it("limpa o áudio cru após transcrever (não enche o disco do celular)", async () => {
