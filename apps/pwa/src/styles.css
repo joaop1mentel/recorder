@@ -1,0 +1,100 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --card: #f4f4f5;
+  --border: #e2e2e5;
+  --accent: #2563eb;
+  --rec: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --card: #27272a;
+    --border: #3f3f46;
+    --accent: #3b82f6;
+    --rec: #ef4444;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 16px;
+  /* impede o "puxar para atualizar" do celular durante a gravação */
+  overscroll-behavior-y: contain;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  /* safe-area: sem isso a barra inferior do iPhone cobre os botões */
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+header h1 { font-size: 22px; margin: 0; }
+header .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+.config { display: flex; flex-direction: column; gap: 12px; }
+.config label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 13px; color: var(--muted);
+}
+select {
+  padding: 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg); color: var(--fg); font-size: 16px;
+}
+
+.controls { display: flex; align-items: center; gap: 12px; }
+button {
+  padding: 14px 20px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--card); color: var(--fg); font-size: 16px;
+  /* alvo de toque confortável */
+  min-height: 52px; cursor: pointer;
+}
+button.rec {
+  background: var(--rec); color: #fff; border-color: var(--rec);
+  font-weight: 600; flex: 1; font-size: 18px;
+}
+button.stop { background: var(--fg); color: var(--bg); flex: 1; }
+
+.gravando, .progresso {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px; background: var(--card); border-radius: 12px;
+}
+.tempo {
+  font-size: 34px; font-variant-numeric: tabular-nums;
+  text-align: center; font-weight: 600;
+}
+.meter { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+.meter .bar { height: 100%; background: var(--rec); transition: width 80ms linear; }
+.meter .bar.azul { background: var(--accent); transition: width 300ms ease; }
+.dica { margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
+.status { margin: 0; font-size: 13px; color: var(--accent); text-align: center; }
+
+.aviso {
+  color: #b45309; background: #fef3c7; padding: 12px;
+  border-radius: 10px; font-size: 14px; margin: 0;
+}
+@media (prefers-color-scheme: dark) { .aviso { background: #422006; color: #fcd34d; } }
+
+.transcript { display: flex; flex-direction: column; gap: 8px; }
+.seg { padding: 12px; background: var(--card); border-radius: 10px; line-height: 1.5; }
+
+.export { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.export button { padding: 10px 14px; font-size: 14px; min-height: 44px; }
+
+.historico h2 { font-size: 15px; margin: 4px 0; }
+.historico ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.historico li button { width: 100%; text-align: left; font-size: 14px; }

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+coverage/
+# pesos de modelo (grandes) — baixados em runtime, nunca versionados
+*.ggml
+*.bin
+models/
+# Assets copiados automaticamente no prebuild por packages/web/scripts/copy-assets.mjs
+# (runtime do onnxruntime + o worklet de captura). Regeneráveis, nunca versionados.
+apps/extension/public/ort/
+apps/extension/public/capture-worklet.js
+apps/pwa/public/ort/
+apps/pwa/public/capture-worklet.js

@@ -1,0 +1,59 @@
+name: Publicar PWA no GitHub Pages
+
+# Publica apps/pwa no GitHub Pages a cada push na branch principal.
+#
+# ⚠️ Antes do primeiro deploy: em Settings → Pages, escolher "GitHub Actions"
+# como origem. E confira que `PWA_BASE` bate com o nome do repositório — se não
+# bater, o app carrega em branco em produção (e só em produção).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# uma publicação por vez; não cancela a que estiver em andamento
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Testes do núcleo
+        run: npm test
+
+      - name: Build do PWA
+        run: npm run build --workspace @rt/pwa
+        env:
+          # precisa terminar em barra e casar com o nome do repositório
+          PWA_BASE: /${{ github.event.repository.name }}/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/pwa/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

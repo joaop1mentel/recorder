@@ -1,0 +1,30 @@
+{
+  "name": "@rt/extension",
+  "version": "0.1.0",
+  "description": "Extensão (Manifest V3) — grava conversas presenciais e transcreve/traduz offline no desktop.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "setup:assets": "node ../../packages/web/scripts/copy-assets.mjs public",
+    "predev": "npm run setup:assets",
+    "dev": "vite",
+    "prebuild": "npm run setup:assets",
+    "build": "vite build && vite build --config vite.config.content.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.3.3",
+    "@rt/core": "0.0.0",
+    "@rt/web": "0.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

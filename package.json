@@ -1,0 +1,15 @@
+{
+  "name": "recorder-translator",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Gravador de conversas presenciais com transcrição e tradução offline (extensão de navegador + app de celular).",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "license": "UNLICENSED"
+}

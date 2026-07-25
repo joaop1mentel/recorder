@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Liberar microfone</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 520px;
+        margin: 48px auto;
+        padding: 0 20px;
+        line-height: 1.55;
+        color: #1a1a1a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #18181b; color: #f4f4f5; }
+      }
+      button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #2563eb;
+        background: #2563eb;
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      #status { font-size: 15px; }
+    </style>
+  </head>
+  <body>
+    <h1>🎙️ Liberar microfone</h1>
+    <p>
+      O painel lateral do Chrome não consegue mostrar o pedido de permissão do
+      microfone. Esta página resolve isso: ao permitir aqui, a extensão passa a
+      ter acesso ao microfone e a gravação funciona no painel.
+    </p>
+    <p id="status">Pedindo permissão do microfone…</p>
+    <button id="retry">Tentar de novo</button>
+    <script type="module" src="/src/permission.ts"></script>
+  </body>
+</html>

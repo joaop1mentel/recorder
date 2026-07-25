@@ -1,0 +1,96 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --card: #f4f4f5;
+  --border: #e2e2e5;
+  --accent: #2563eb;
+  --rec: #dc2626;
+  --trad: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --card: #27272a;
+    --border: #3f3f46;
+    --accent: #3b82f6;
+    --rec: #ef4444;
+    --trad: #60a5fa;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 14px;
+}
+.app { display: flex; flex-direction: column; gap: 12px; padding: 14px; min-width: 300px; }
+header h1 { font-size: 16px; margin: 0; }
+header .sub { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+.config { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.config label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.config label.check { flex-direction: row; align-items: center; grid-column: 1 / -1; color: var(--fg); }
+select { padding: 5px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); }
+
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+button {
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--fg); cursor: pointer; font-size: 13px;
+}
+button:hover { border-color: var(--accent); }
+button.rec { background: var(--rec); color: #fff; border-color: var(--rec); font-weight: 600; }
+button.stop { background: var(--fg); color: var(--bg); }
+.meter { flex: 1; height: 8px; background: var(--card); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.meter .bar { height: 100%; background: var(--rec); transition: width 80ms linear; }
+
+.status { color: var(--accent); font-size: 12px; margin: 0; }
+.aviso { color: #b45309; background: #fef3c7; padding: 8px; border-radius: 6px; font-size: 12px; margin: 0; }
+@media (prefers-color-scheme: dark) { .aviso { background: #422006; color: #fcd34d; } }
+
+.transcript { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; padding-right: 4px; }
+.vazio { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+.seg { display: flex; flex-direction: column; gap: 2px; padding: 8px; background: var(--card); border-radius: 8px; }
+.seg .orig { }
+.seg .trad { color: var(--trad); font-size: 13px; }
+.seg .falante { font-size: 11px; font-weight: 600; color: var(--accent); }
+
+/* Reunião do Meet detectada */
+.reuniao {
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  padding: 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--card);
+}
+.reuniao .titulo { font-size: 12px; color: var(--muted); }
+.reuniao .dica { margin: 0; font-size: 11px; color: var(--muted); }
+
+.pontos { background: var(--card); border-radius: 8px; padding: 10px; }
+.pontos h2 { font-size: 13px; margin: 0 0 6px; color: var(--accent); }
+.pontos pre {
+  margin: 0; white-space: pre-wrap; word-break: break-word;
+  font-family: inherit; font-size: 13px; line-height: 1.5;
+}
+
+.export { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+.ia h2 { font-size: 13px; margin: 4px 0 8px; }
+.ia-botoes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ia-botoes button { font-size: 12px; }
+.ia-pergunta { display: flex; gap: 6px; }
+.ia-pergunta input {
+  flex: 1; padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 13px;
+}
+.ia-saida { margin-top: 10px; background: var(--card); border-radius: 8px; padding: 10px; }
+.ia-saida strong { display: block; margin-bottom: 6px; color: var(--accent); font-size: 12px; }
+.ia-saida pre {
+  margin: 0; white-space: pre-wrap; word-break: break-word;
+  font-family: inherit; font-size: 13px; line-height: 1.5;
+}
+.historico h2 { font-size: 13px; margin: 4px 0; }
+.historico ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.historico li button { width: 100%; text-align: left; font-size: 12px; }

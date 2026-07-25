@@ -1,0 +1,21 @@
+{
+  "name": "@rt/core",
+  "version": "0.0.0",
+  "description": "Núcleo agnóstico de plataforma: máquina de estados de gravação, VAD, pipeline captura→STT→tradução e export.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@rt/pwa",
+  "version": "0.1.0",
+  "description": "App de celular (PWA) — grava e transcreve conversas offline no dispositivo.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "setup:assets": "node ../../packages/web/scripts/copy-assets.mjs public",
+    "predev": "npm run setup:assets",
+    "dev": "vite",
+    "prebuild": "npm run setup:assets",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.3.3",
+    "@rt/core": "0.0.0",
+    "@rt/web": "0.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

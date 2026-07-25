@@ -1,0 +1,22 @@
+{
+  "name": "@rt/web",
+  "version": "0.0.0",
+  "description": "Adapters de navegador compartilhados pela extensão e pelo PWA: captura de microfone, Whisper WASM, IndexedDB.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./whisper.worker": "./src/whisper.worker.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.3.3",
+    "@rt/core": "0.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

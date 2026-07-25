@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Recorder + Translator",
+  "version": "0.2.0",
+  "description": "Grava conversas e reuniões do Meet e transcreve/traduz offline no dispositivo.",
+  "minimum_chrome_version": "138",
+  "permissions": ["sidePanel", "tabCapture", "offscreen", "storage"],
+  "host_permissions": ["https://meet.google.com/*"],
+  "action": {
+    "default_title": "Recorder + Translator — abrir painel"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content-meet.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}
