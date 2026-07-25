@@ -1,6 +1,8 @@
 # Contexto do projeto — Recorder + Translator
 
-Handoff desta conversa (2026-07-23). Leia isto primeiro ao retomar.
+Visão geral do projeto. **Para retomar o trabalho, leia antes o
+`CONTEXTO_SESSAO_2026-07-25.md`** — tem o estado atual e um bug em aberto
+("failed to fetch" ao transcrever no PWA).
 
 ## O que é
 
