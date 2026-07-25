@@ -186,6 +186,11 @@ setInterval(() => {
   }
 }, INTERVALO_VARREDURA);
 
-log("content script carregado em", location.pathname, "| naSala:", naSala());
+// Uma linha, sempre. Sem ela não há como responder "o script chegou a carregar?"
+// olhando o console — e essa foi a primeira dúvida na primeira reunião real.
+console.log(
+  `[recorder] extensão ativa nesta aba · sala detectada: ${naSala() ? "sim" : "não"} (${location.pathname})`,
+);
+
 // varre já na carga, sem esperar o primeiro tick
 varrer();
