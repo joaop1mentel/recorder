@@ -16,6 +16,7 @@ import {
   IndexedDbDeposito,
   IndexedDbStorage,
   WhisperTranscriber,
+  urlsDeAssets,
 } from "@rt/web";
 import { baixar } from "./download.js";
 
@@ -33,9 +34,11 @@ const MODELOS = [
 const storage = new IndexedDbStorage();
 const deposito = new IndexedDbDeposito();
 
-/** URLs dos assets locais, respeitando o `base` do GitHub Pages. */
-const WORKLET_URL = new URL("capture-worklet.js", import.meta.env.BASE_URL).href;
-const ORT_BASE = new URL("ort/", import.meta.env.BASE_URL).href;
+/** URLs dos assets locais, respeitando o `base` do GitHub Pages (ver urlsDeAssets). */
+const { worklet: WORKLET_URL, ortBase: ORT_BASE } = urlsDeAssets(
+  import.meta.env.BASE_URL,
+  location.origin,
+);
 
 function duracao(ms: number): string {
   const s = Math.floor(ms / 1000);
