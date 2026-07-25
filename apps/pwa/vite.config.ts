@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 // O GitHub Pages serve o site numa subpasta (`/<repo>/`). Sem `base` correto, o
 // service worker e os assets apontariam para a raiz do domínio e o app quebraria
 // só em produção. Trocar por `/` se um dia for para um domínio próprio.
-const base = process.env.PWA_BASE ?? "/recorder-translator/";
+const base = process.env.PWA_BASE ?? "/recorder/";
 
 export default defineConfig({
   base,
