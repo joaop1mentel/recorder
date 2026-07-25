@@ -14,8 +14,21 @@ import type { EventoMeet } from "../mensagens.js";
  */
 
 const INTERVALO_VARREDURA = 500;
-/** URL de sala é meet.google.com/abc-defg-hij */
-const RE_SALA = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/i;
+/** URL de sala é meet.google.com/abc-defg-hij (com ou sem barra no fim) */
+const RE_SALA = /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}\/?$/i;
+
+/** Liga logs no console da aba do Meet: `localStorage.recorderDebug = "1"`. */
+const DEBUG = (() => {
+  try {
+    return localStorage.getItem("recorderDebug") === "1";
+  } catch {
+    return false;
+  }
+})();
+
+function log(...args: unknown[]): void {
+  if (DEBUG) console.log("[recorder/meet]", ...args);
+}
 
 function avisar(msg: EventoMeet): void {
   try {
@@ -25,14 +38,19 @@ function avisar(msg: EventoMeet): void {
   }
 }
 
+/**
+ * Estamos numa sala do Meet?
+ *
+ * Decidido **só pela URL**, de propósito. A primeira versão exigia também achar
+ * o botão de microfone no DOM, e foi assim que o recurso morreu em silêncio na
+ * primeira reunião de verdade: seletor não casou → nada foi detectado.
+ *
+ * O padrão da URL é estável há anos e não depende de idioma nem de layout. Um
+ * falso positivo (badge aparecer na tela de entrada, antes de entrar) custa
+ * quase nada; um falso negativo quebra o recurso inteiro.
+ */
 function naSala(): boolean {
-  if (!RE_SALA.test(location.pathname)) return false;
-  // a sala só conta depois de entrar de fato: aí existem os controles de mídia
-  return Boolean(
-    document.querySelector(
-      '[aria-label*="microfone" i], [aria-label*="microphone" i], [data-is-muted]',
-    ),
-  );
+  return RE_SALA.test(location.pathname);
 }
 
 /**
@@ -106,6 +124,7 @@ function varrer(): void {
   const agora = naSala();
   if (agora !== dentro) {
     dentro = agora;
+    log(agora ? "entrou na sala" : "saiu da sala", location.pathname);
     avisar(agora ? { tipo: "meet:entrou", titulo: document.title } : { tipo: "meet:saiu" });
     if (!agora) {
       falandoAgora.clear();
@@ -120,6 +139,7 @@ function varrer(): void {
     // Avisa UMA vez — a gravação continua, só sem nomes.
     if (!jaAvisouSemLeitura) {
       jaAvisouSemLeitura = true;
+      log("nenhum tile de participante encontrado — sem nomes nesta reunião");
       avisar({ tipo: "meet:semLeitura" });
     }
     return;
@@ -160,7 +180,12 @@ function varrer(): void {
 setInterval(() => {
   try {
     varrer();
-  } catch {
+  } catch (e) {
+    log("erro na varredura:", e);
     // qualquer mudança inesperada do Meet não pode derrubar a página do usuário
   }
 }, INTERVALO_VARREDURA);
+
+log("content script carregado em", location.pathname, "| naSala:", naSala());
+// varre já na carga, sem esperar o primeiro tick
+varrer();

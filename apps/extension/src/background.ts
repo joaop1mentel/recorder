@@ -143,6 +143,32 @@ chrome.runtime.onMessage.addListener((msg: EventoMeet | { tipo: string }, sender
   return undefined;
 });
 
+/**
+ * Injeta o content script nas abas do Meet JÁ ABERTAS.
+ *
+ * `content_scripts` do manifest só roda em carregamento de página: quem já
+ * estava numa reunião quando a extensão foi instalada/recarregada ficaria sem
+ * detecção nenhuma até dar F5 — que foi exatamente o sintoma de "iniciei o Meet
+ * e não apareceu nada".
+ */
+async function injetarNasAbasAbertas(): Promise<void> {
+  try {
+    const abas = await chrome.tabs.query({ url: "https://meet.google.com/*" });
+    for (const aba of abas) {
+      if (aba.id === undefined) continue;
+      await chrome.scripting
+        .executeScript({ target: { tabId: aba.id }, files: ["content-meet.js"] })
+        .catch(() => {
+          // aba protegida ou já com o script rodando — ignorar
+        });
+    }
+  } catch {
+    // sem a permissão "scripting" ou nenhuma aba do Meet aberta
+  }
+}
+chrome.runtime.onInstalled.addListener(() => void injetarNasAbasAbertas());
+chrome.runtime.onStartup.addListener(() => void injetarNasAbasAbertas());
+
 // Se a aba da reunião for fechada, o content script não consegue mais avisar.
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (reuniao.tabId === tabId) {
