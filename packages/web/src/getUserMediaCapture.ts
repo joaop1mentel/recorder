@@ -1,6 +1,6 @@
 import {
   SegmentadorVAD,
-  reamostrar,
+  criarReamostradorDeFluxo,
   rms,
   type AudioCapture,
   type AudioChunk,
@@ -32,8 +32,8 @@ export class GetUserMediaCapture implements AudioCapture {
   private levelCb?: (rms: number) => void;
   private t0 = 0;
   private acc: number[] = [];
-  /** taxa real do hardware, descoberta só depois de abrir o contexto */
-  private srEntrada = SR_ALVO;
+  /** criado só depois de abrir o contexto, quando já sabemos a taxa real do hardware */
+  private reamostrarFluxo: (q: Float32Array) => Float32Array = (q) => q;
 
   /**
    * @param workletUrl URL do `capture-worklet.js`. Vem de fora porque cada app
@@ -58,7 +58,7 @@ export class GetUserMediaCapture implements AudioCapture {
   /** Monta AudioContext + worklet sobre um stream já obtido. */
   protected async montarGrafo(stream: MediaStream): Promise<void> {
     this.ctx = new AudioContext();
-    this.srEntrada = this.ctx.sampleRate;
+    this.reamostrarFluxo = criarReamostradorDeFluxo(this.ctx.sampleRate, SR_ALVO);
     await this.ctx.audioWorklet.addModule(this.workletUrl);
     this.source = this.ctx.createMediaStreamSource(stream);
     this.node = new AudioWorkletNode(this.ctx, "capture-processor");
@@ -80,7 +80,7 @@ export class GetUserMediaCapture implements AudioCapture {
 
   private onFrame(quantum: Float32Array): void {
     // reamostra logo na entrada: daqui para a frente tudo é 16 kHz
-    const em16k = reamostrar(quantum, this.srEntrada, SR_ALVO);
+    const em16k = this.reamostrarFluxo(quantum);
     for (let i = 0; i < em16k.length; i++) this.acc.push(em16k[i]!);
     while (this.acc.length >= FRAME) {
       const frame = Float32Array.from(this.acc.splice(0, FRAME));

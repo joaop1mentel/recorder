@@ -67,3 +67,46 @@ export function reamostrar(
   }
   return out;
 }
+
+/**
+ * Reamostrador com estado, para uso em stream (um quantum do AudioWorklet por
+ * vez, tipicamente 128 amostras).
+ *
+ * `reamostrar()` sozinha reseta a fase a zero a cada chamada: chamada quantum a
+ * quantum, ela descarta a sobra fracionária no fim de cada bloco (até ~2 de
+ * cada 3 amostras na conversão 48→16 kHz, repetido a cada ~2,7 ms). O efeito é
+ * um leve "engasgo" contínuo no áudio, silencioso nos testes (que só reamostram
+ * o buffer inteiro de uma vez) mas audível — e ruim para o Whisper — numa
+ * gravação de verdade. Esta versão carrega a fração e as amostras não usadas
+ * de uma chamada para a próxima, sem perder nada.
+ */
+export function criarReamostradorDeFluxo(
+  deSampleRate: number,
+  paraSampleRate: number,
+): (quantum: Float32Array) => Float32Array {
+  if (deSampleRate === paraSampleRate) return (q) => q;
+  const razao = deSampleRate / paraSampleRate;
+  let pendente = new Float32Array(0);
+  let posicao = 0;
+  return (quantum: Float32Array): Float32Array => {
+    const buf = new Float32Array(pendente.length + quantum.length);
+    buf.set(pendente, 0);
+    buf.set(quantum, pendente.length);
+    const out: number[] = [];
+    while (true) {
+      const idx = Math.floor(posicao);
+      if (idx + 1 >= buf.length) break;
+      const frac = posicao - idx;
+      out.push(buf[idx]! + (buf[idx + 1]! - buf[idx]!) * frac);
+      posicao += razao;
+    }
+    // `posicao` pode passar do fim do buffer atual (quantum não é múltiplo
+    // exato da razão): só descontamos o que o buffer atual de fato tinha,
+    // guardando o excesso em `posicao` para a próxima chamada em vez de
+    // jogá-lo fora.
+    const consumido = Math.min(Math.floor(posicao), buf.length);
+    pendente = buf.slice(consumido);
+    posicao -= consumido;
+    return Float32Array.from(out);
+  };
+}

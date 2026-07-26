@@ -38,6 +38,41 @@ serializado na rota. `npm test` (48/48) e `npm run build --workspace @rt/pwa` pa
 
 ---
 
+## ✅ SEGUNDO BUG RESOLVIDO — transcrição lenta e errada no celular
+
+Depois do fix acima o "failed to fetch" sumiu (o dono conseguiu ver uma transcrição), mas
+ela veio **lenta e errada** ("lê tudo errado"). Dois problemas encontrados no código, os
+dois sem teste cobrindo o caminho real de uso:
+
+**1) Reamostragem 48→16 kHz perdia amostra a cada quantum do AudioWorklet — causa mais
+provável do texto errado.** `reamostrar()` (`packages/core/src/util.ts`) é stateless: cada
+chamada zera a fase em `pos = 0`. Só que `GetUserMediaCapture.onFrame`
+(`packages/web/src/getUserMediaCapture.ts`) chamava ela **quantum a quantum** (128 amostras
+por vez, como o AudioWorklet entrega) em vez de no buffer inteiro. A cada quantum, a sobra
+fracionária do fim do bloco (até ~1 amostra de 3 na conversão 48→16 kHz, repetido a cada
+~2,7 ms) era descartada em vez de carregada para o próximo — um engasgo contínuo e
+silencioso no áudio antes mesmo de chegar no Whisper. **Novo:**
+`criarReamostradorDeFluxo()` em `util.ts`, com estado (carrega fração + amostras não usadas
+entre chamadas), usado agora em `GetUserMediaCapture`. Teste novo em
+`transcreverDepois.test.ts` prova que processar em quanta pequenos dá o mesmo resultado que
+reamostrar o buffer inteiro de uma vez (o teste antigo só cobria o buffer inteiro, por isso
+não pegou isso).
+
+**2) Detecção de GPU só checava presença da API, não se ela funciona de verdade — causa
+provável da lentidão.** `"gpu" in navigator` (em `App.tsx` e no `whisper.worker.ts`) é
+`true` em vários Android mesmo quando `requestAdapter()` devolve `null` (hardware/driver na
+denylist do Chrome). Isso fazia o app escolher o modelo `base` (mais pesado) e forçar
+`device: "webgpu"`, que falha ao montar a sessão e só então cai para WASM — mais lento que
+já pedir WASM/tiny de cara. **Novo:** `detectarWebGPU()` (`packages/web/src/webgpu.ts`) faz
+a checagem real (`requestAdapter()`), usada nos dois lugares; o PWA agora baixa para
+`whisper-tiny` automaticamente se a checagem real vier negativa mesmo com a API presente.
+
+`npm test` (46+4), typecheck e build dos dois apps (`@rt/pwa`, `@rt/extension`) passam.
+
+> ⚠️ Também não validado em runtime real ainda — mesmo aviso de sempre.
+
+---
+
 ## O que foi feito nesta sessão
 
 ### 1. Fase Meet (extensão) — implementada, não validada

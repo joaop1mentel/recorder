@@ -16,6 +16,7 @@ import {
   IndexedDbDeposito,
   IndexedDbStorage,
   WhisperTranscriber,
+  detectarWebGPU,
   urlsDeAssets,
 } from "@rt/web";
 import { baixar } from "./download.js";
@@ -31,9 +32,15 @@ const MODELOS = [
  * Com GPU o `base` roda tranquilo e transcreve bem melhor — especialmente em
  * português, onde o `tiny` erra muito. Sem GPU tudo roda no WASM da CPU, e aí o
  * `tiny` é o único que termina em tempo aceitável.
+ *
+ * Chute inicial otimista (não dá para checar o adaptador de forma síncrona,
+ * e o `<select>` precisa de um valor no primeiro render); `useEffect` abaixo
+ * corrige para "tiny" se a checagem real de WebGPU vier negativa.
  */
-const TEM_GPU = typeof navigator !== "undefined" && "gpu" in navigator;
-const MODELO_PADRAO = TEM_GPU ? "Xenova/whisper-base" : "Xenova/whisper-tiny";
+const MODELO_PADRAO =
+  typeof navigator !== "undefined" && "gpu" in navigator
+    ? "Xenova/whisper-base"
+    : "Xenova/whisper-tiny";
 
 const storage = new IndexedDbStorage();
 const deposito = new IndexedDbDeposito();
@@ -63,6 +70,25 @@ function mensagemErro(e: unknown): string {
 export function App() {
   const [origem, setOrigem] = useState<Idioma>("pt");
   const [modelo, setModelo] = useState(MODELO_PADRAO);
+  // null = ainda checando; a checagem real do adaptador é assíncrona
+  const [temGpu, setTemGpu] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    void detectarWebGPU().then((ok) => {
+      if (cancelado) return;
+      setTemGpu(ok);
+      // o chute inicial (só presença da API) foi otimista demais: sem GPU de
+      // verdade, "base" é lento demais no celular — desce para "tiny" se o
+      // usuário ainda não mexeu na configuração nem começou a gravar.
+      setModelo((atual) =>
+        !ok && atual === "Xenova/whisper-base" ? "Xenova/whisper-tiny" : atual,
+      );
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const [estado, setEstado] = useState<Estado>("idle");
   const [falas, setFalas] = useState(0);
@@ -240,9 +266,11 @@ export function App() {
             </select>
           </label>
           <p className="dica">
-            {TEM_GPU
-              ? "⚡ Acelerado por GPU neste aparelho."
-              : "🐢 Sem GPU neste aparelho — a transcrição roda na CPU e demora bem mais."}
+            {temGpu === null
+              ? "Checando aceleração por GPU…"
+              : temGpu
+                ? "⚡ Acelerado por GPU neste aparelho."
+                : "🐢 Sem GPU neste aparelho — a transcrição roda na CPU e demora bem mais."}
           </p>
         </section>
       )}
@@ -316,7 +344,7 @@ export function App() {
             </>
           )}
           <p className="dica">
-            {TEM_GPU
+            {temGpu
               ? "Mantenha o app aberto."
               : "Sem GPU, pode demorar vários minutos. Mantenha o app aberto."}
           </p>

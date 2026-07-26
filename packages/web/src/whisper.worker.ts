@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { pipeline, env } from "@huggingface/transformers";
+import { detectarWebGPU } from "./webgpu.js";
 
 /**
  * Worker do Whisper (transformers.js), compartilhado pela extensão e pelo PWA.
@@ -26,11 +27,17 @@ let modelId = "Xenova/whisper-base";
 let ortConfigurado = false;
 
 /**
- * WebGPU dá de 5 a 10x sobre o WASM no Whisper. É padrão no Chrome Android 12+
- * e no desktop; onde não existir, caímos no WASM sem alarde.
+ * WebGPU dá de 5 a 10x sobre o WASM no Whisper, mas forçar `device: "webgpu"`
+ * quando o adaptador não existe de verdade não falha alto: o transformers.js
+ * tenta montar a sessão em WebGPU, não consegue, e só então cai para WASM —
+ * mais lento que já pedir WASM de cara. `detectarWebGPU()` faz a checagem real
+ * (não só `"gpu" in navigator`); cacheamos porque o resultado não muda durante
+ * a vida do worker.
  */
-function temWebGPU(): boolean {
-  return typeof navigator !== "undefined" && "gpu" in navigator;
+let webgpuChecado: Promise<boolean> | null = null;
+function temWebGPU(): Promise<boolean> {
+  if (!webgpuChecado) webgpuChecado = detectarWebGPU();
+  return webgpuChecado;
 }
 
 function configurarOrt(ortBase: string): void {
@@ -50,10 +57,10 @@ function configurarOrt(ortBase: string): void {
   ortConfigurado = true;
 }
 
-function getAsr(): Promise<AsrFn> {
+async function getAsr(): Promise<AsrFn> {
   if (!asr) {
     asr = pipeline("automatic-speech-recognition", modelId, {
-      device: temWebGPU() ? "webgpu" : "wasm",
+      device: (await temWebGPU()) ? "webgpu" : "wasm",
       /**
        * Quantização híbrida: encoder em fp32, decoder em q4.
        *
@@ -97,7 +104,7 @@ self.onmessage = async (e: MessageEvent<MsgIn>) => {
       (self as unknown as Worker).postMessage({
         id,
         ok: true,
-        device: temWebGPU() ? "webgpu" : "wasm",
+        device: (await temWebGPU()) ? "webgpu" : "wasm",
       });
       return;
     }

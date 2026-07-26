@@ -15,4 +15,5 @@ export {
   paraInt16,
   paraFloat32,
   reamostrar,
+  criarReamostradorDeFluxo,
 } from "./util.js";

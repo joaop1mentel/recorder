@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Pipeline, transcreverPendentes } from "../src/pipeline.js";
-import { paraFloat32, paraInt16, reamostrar } from "../src/util.js";
+import {
+  criarReamostradorDeFluxo,
+  paraFloat32,
+  paraInt16,
+  reamostrar,
+} from "../src/util.js";
 import {
   FakeCapture,
   FakeTranscriber,
@@ -158,5 +163,33 @@ describe("conversões de PCM", () => {
   it("mesma taxa devolve o mesmo buffer, sem trabalho à toa", () => {
     const pcm = new Float32Array([1, 2, 3]);
     expect(reamostrar(pcm, 16000, 16000)).toBe(pcm);
+  });
+
+  it("reamostrador de fluxo não perde amostras entre quanta pequenos", () => {
+    // simula o AudioWorklet: 128 amostras por vez, 48 kHz -> 16 kHz (razão 3)
+    const total = 4800; // 100 ms a 48 kHz
+    const em48k = new Float32Array(total);
+    for (let i = 0; i < total; i++) em48k[i] = Math.sin(i * 0.01);
+
+    const fluxo = criarReamostradorDeFluxo(48000, 16000);
+    const emStream: number[] = [];
+    for (let i = 0; i < total; i += 128) {
+      const quantum = em48k.slice(i, i + 128);
+      for (const v of fluxo(quantum)) emStream.push(v);
+    }
+
+    const deUmaVez = reamostrar(em48k, 48000, 16000);
+    // processar em quanta pequenos tem de dar (quase) o mesmo resultado que
+    // reamostrar o buffer inteiro de uma vez, sem descartar nada nas bordas
+    expect(emStream.length).toBeGreaterThanOrEqual(deUmaVez.length - 1);
+    for (let i = 0; i < deUmaVez.length - 2; i++) {
+      expect(emStream[i]!).toBeCloseTo(deUmaVez[i]!, 3);
+    }
+  });
+
+  it("reamostrador de fluxo não faz nada quando a taxa já é a mesma", () => {
+    const fluxo = criarReamostradorDeFluxo(16000, 16000);
+    const pcm = new Float32Array([1, 2, 3]);
+    expect(fluxo(pcm)).toBe(pcm);
   });
 });

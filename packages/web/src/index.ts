@@ -6,3 +6,4 @@ export { urlsDeAssets, type UrlsDeAssets } from "./assets.js";
 export { GetUserMediaCapture, SR_ALVO } from "./getUserMediaCapture.js";
 export { WhisperTranscriber, type WhisperOpts } from "./whisperTranscriber.js";
 export { IndexedDbStorage, IndexedDbDeposito } from "./indexedDbStorage.js";
+export { detectarWebGPU } from "./webgpu.js";
