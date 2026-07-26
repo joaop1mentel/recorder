@@ -73,6 +73,34 @@ a checagem real (`requestAdapter()`), usada nos dois lugares; o PWA agora baixa 
 
 ---
 
+## ✅ TERCEIRO E QUARTO BUGS — loop de repetição no Whisper + extensão sem aviso
+
+O dono mandou uma transcrição real do PWA: fora os erros normais de reconhecimento
+(esperados num modelo pequeno), tinha **dois blocos gigantes de palavra repetida**
+("tá, tá, tá, ..." e "ok, ok, ok, ..." dezenas de vezes cada) — sintoma clássico do
+decodificador guloso do Whisper travando num loop quando o sinal é fraco/ambíguo numa
+janela. **Fix:** `no_repeat_ngram_size: 3` na chamada do modelo
+(`packages/web/src/whisper.worker.ts`) — proíbe repetir a mesma sequência de 3 tokens,
+mata o loop sem afetar fala normal.
+
+Também relatado: a extensão **não avisa** ao entrar numa reunião do Meet (achava que não
+detectava) e problemas de reconhecimento de voz nela. A detecção em si funciona (só pinta
+um badge "REC" no ícone), mas: (a) a extensão **não tinha ícone próprio** — usava o genérico
+do Chrome, o que também dificulta até fixá-la na barra; (b) o badge é fácil de nunca ver se
+o ícone não está fixado. **Fix:** ícone real (`apps/extension/public/icone-192.png`,
+reaproveitado do PWA) + notificação do sistema (`chrome.notifications`) ao detectar
+reunião, que não depende de gesto nem do ícone estar visível — clicar nela abre o painel.
+Os problemas de reconhecimento de voz na extensão devem ser os dois bugs já corrigidos
+acima (reamostragem + detecção de GPU), já que `TabCapture` herda de `GetUserMediaCapture`.
+
+`npm test`, typecheck e build dos dois apps passam.
+
+> ⚠️ A extensão **não tem deploy automático** — ao contrário do PWA, o dono precisa
+> recarregar manualmente em `chrome://extensions` (build novo em `apps/extension/dist`)
+> para testar qualquer uma dessas correções.
+
+---
+
 ## O que foi feito nesta sessão
 
 ### 1. Fase Meet (extensão) — implementada, não validada
