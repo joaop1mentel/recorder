@@ -123,6 +123,13 @@ self.onmessage = async (e: MessageEvent<MsgIn>) => {
         // decodificação gulosa: determinística e mais rápida
         top_k: 0,
         do_sample: false,
+        // O decodificador guloso às vezes trava num loop e repete a mesma
+        // palavra/frase até o fim da janela (ex.: "tá, tá, tá, ..." dezenas de
+        // vezes) — sintoma clássico do Whisper em trechos com pouco sinal.
+        // Proibir repetir a mesma sequência de 3 tokens elimina o loop sem
+        // atrapalhar fala normal (repetição idêntica de 3+ palavras seguidas
+        // é rara em transcrição real).
+        no_repeat_ngram_size: 3,
       });
       const saida = Array.isArray(out) ? out[0] : out;
       (self as unknown as Worker).postMessage({

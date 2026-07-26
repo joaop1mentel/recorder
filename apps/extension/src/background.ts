@@ -20,6 +20,36 @@ async function carregar(): Promise<void> {
 }
 void carregar();
 
+/**
+ * O badge "REC" no ícone é fácil de nunca ver: se o ícone não estiver fixado
+ * na barra, ele fica escondido dentro do menu 🧩. A notificação do sistema é a
+ * garantia de que o usuário sabe que a reunião foi detectada — o Chrome não
+ * deixa começar a gravação sozinho (tabCapture exige um clique), mas pelo
+ * menos avisar disso não depende de gesto nenhum.
+ */
+const ID_NOTIFICACAO = "recorder-reuniao-detectada";
+
+function notificarReuniaoDetectada(): void {
+  chrome.notifications.create(
+    ID_NOTIFICACAO,
+    {
+      type: "basic",
+      iconUrl: "icone-192.png",
+      title: "Reunião do Meet detectada",
+      message: "Clique aqui para abrir o Recorder e gravar.",
+      priority: 1,
+    },
+    () => {},
+  );
+}
+
+chrome.notifications.onClicked.addListener((id) => {
+  if (id !== ID_NOTIFICACAO) return;
+  const tabId = reuniao.tabId;
+  if (tabId !== undefined) void chrome.sidePanel.open({ tabId }).catch(() => {});
+  chrome.notifications.clear(ID_NOTIFICACAO, () => {});
+});
+
 function pintarBadge(): void {
   const ativo = reuniao.emReuniao;
   void chrome.action.setBadgeText({ text: ativo ? "REC" : "" });
@@ -85,6 +115,7 @@ chrome.runtime.onMessage.addListener((msg: EventoMeet | { tipo: string }, sender
       };
       pintarBadge();
       void salvar();
+      notificarReuniaoDetectada();
       break;
 
     case "meet:saiu":
