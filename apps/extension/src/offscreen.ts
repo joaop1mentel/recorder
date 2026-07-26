@@ -111,8 +111,14 @@ async function iniciar(opts: OpcoesGravacao): Promise<void> {
 }
 
 async function parar(): Promise<void> {
-  if (!pipe) return;
-  const session: Session = await pipe.stop();
+  // captura e zera já aqui: se "parar" chegar duas vezes (duplo clique, painel
+  // reenviando), a segunda chamada não pode ver `pipe` ainda de pé e chamar
+  // `.stop()` de novo — isso fecha o mesmo AudioContext duas vezes e lança
+  // "Cannot close a closed AudioContext".
+  const emAndamento = pipe;
+  if (!emAndamento) return;
+  pipe = null;
+  const session: Session = await emAndamento.stop();
   emitir({ tipo: "nivel", valor: 0 });
 
   // completa traduções que ficaram para trás (pacote de idioma ainda baixando)
