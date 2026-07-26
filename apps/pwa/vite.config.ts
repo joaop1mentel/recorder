@@ -73,6 +73,26 @@ export default defineConfig({
               cacheName: "modelos-whisper",
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 180 },
               cacheableResponse: { statuses: [0, 200] },
+              plugins: [
+                {
+                  // O download resolve.../onnx/*.onnx do Hugging Face responde com
+                  // 302 para a CDN (cdn-lfs.huggingface.co). O Cache API do
+                  // navegador recusa response.redirected===true com
+                  // "Response served by service worker is redirected", e isso
+                  // aparece na página como "failed to fetch". Reconstruir a
+                  // resposta sem a flag de redirect antes de cachear.
+                  cacheWillUpdate: async ({ response }) => {
+                    if (response.redirected) {
+                      return new Response(await response.blob(), {
+                        headers: response.headers,
+                        status: response.status,
+                        statusText: response.statusText,
+                      });
+                    }
+                    return response;
+                  },
+                },
+              ],
             },
           },
         ],

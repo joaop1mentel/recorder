@@ -1,48 +1,40 @@
 # Contexto da sessão — 2026-07-25
 
 Handoff desta conversa. O `CONTEXTO.md` tem a visão geral do projeto; este arquivo é o
-estado de **hoje**, incluindo um bug em aberto.
+estado de **hoje**.
 
 ---
 
-## 🔴 BUG EM ABERTO — começar por aqui
+## ✅ BUG RESOLVIDO (era 🔴 em aberto) — "failed to fetch" ao transcrever no PWA
 
-**Sintoma:** no PWA, ao apertar Parar, dá **"failed to fetch"** na hora de transcrever.
-Aconteceu no celular do dono, depois do deploy de hoje que mudou a quantização.
+**Sintoma:** no PWA, ao apertar Parar, dava "failed to fetch" na hora de transcrever.
 
-**Hipótese (NÃO confirmada — a verificação foi interrompida):** o `dtype` híbrido que
-passei a usar em `packages/web/src/whisper.worker.ts` aponta para arquivos que podem **não
-existir** nos repositórios `Xenova/*`:
+**Hipótese antiga (descartada nesta sessão):** achávamos que era o `dtype` híbrido
+(`fp32`/`q4`) apontando para arquivos ONNX inexistentes em `Xenova/*`. **Verificado e
+falso**: confirmei via `https://huggingface.co/api/models/Xenova/whisper-tiny` (e `-base`)
+que `onnx/encoder_model.onnx` e `onnx/decoder_model_merged_q4.onnx` existem nos dois
+repositórios, e via `curl -IL` que ambos respondem 200 com
+`access-control-allow-origin: *`.
 
-```ts
-dtype: { encoder_model: "fp32", decoder_model_merged: "q4" }
-```
+**Causa real:** os URLs `resolve/main/onnx/*.onnx` da Hugging Face respondem com **302**
+para a CDN (`cdn-lfs.huggingface.co`). O `runtimeCaching` do Workbox em
+`apps/pwa/vite.config.ts` (estratégia `CacheFirst` para `huggingface.co/.*`) tentava
+`cache.put()` dessa resposta já seguida (`response.redirected === true`). O Cache API do
+navegador **recusa** isso com `TypeError: Response served by service worker is
+redirected` — que aparece na página como "failed to fetch". É um problema documentado do
+Workbox (GoogleChrome/workbox#1481). Só apareceu agora porque os arquivos do dtype
+híbrido são URLs novas, nunca cacheadas antes — primeira vez que esse caminho foi
+exercitado.
 
-Isso faz o transformers.js buscar `onnx/encoder_model.onnx` e
-`onnx/decoder_model_merged_q4.onnx`. Os repositórios `Xenova/whisper-*` são antigos e podem
-ter só `model.onnx` / `model_quantized.onnx`. Um 404 nesse download aparece exatamente como
-"failed to fetch". A referência (whisper-web) usa **`onnx-community/whisper-*`**, que tem a
-matriz completa de dtypes — nós usamos `Xenova/*`.
+**Fix aplicado:** plugin `cacheWillUpdate` na entrada `runtimeCaching` de
+`modelos-whisper` (`apps/pwa/vite.config.ts`) que reconstrói a `Response` via
+`response.blob()` + `new Response(...)` antes de deixar o Workbox cachear, removendo a
+flag de redirect. Confirmado no `dist/sw.js` gerado: o `cacheWillUpdate` aparece
+serializado na rota. `npm test` (48/48) e `npm run build --workspace @rt/pwa` passam.
 
-**Como confirmar (5 min):**
-
-1. Listar os arquivos ONNX dos dois repositórios e comparar:
-   `https://huggingface.co/api/models/Xenova/whisper-base` (campo `siblings`)
-   `https://huggingface.co/api/models/onnx-community/whisper-base`
-2. Ou abrir o PWA no desktop, DevTools → aba Network, apertar Parar e ver **qual URL deu
-   404**. Este é o caminho mais rápido e direto.
-
-**Correções possíveis, em ordem de preferência:**
-
-- Trocar os ids de modelo para `onnx-community/whisper-base` / `-tiny` (mantém o dtype
-  híbrido, que é o que melhora a precisão);
-- ou manter `Xenova/*` e remover o `dtype` (volta ao q8 padrão — perde parte do ganho de
-  precisão, mas volta a funcionar);
-- ou usar `dtype` só quando o device for `webgpu`.
-
-> ⚠️ Não dá para afirmar que as melhorias de precisão desta sessão funcionaram: o dono não
-> chegou a ver uma transcrição depois da mudança. **Tudo abaixo está entregue mas não
-> validado em runtime.**
+> ⚠️ Ainda falta validação em runtime real (celular do dono). O tipo de bug que este
+> projeto mais sofre é exatamente esse: passa por todos os testes automatizados e só
+> quebra dentro de um navegador de verdade.
 
 ---
 
@@ -135,7 +127,8 @@ próximo investimento com melhor retorno.
 
 ## Próximos passos
 
-1. **Resolver o "failed to fetch"** (topo deste arquivo).
+1. **Validar em runtime que o "failed to fetch" sumiu** (fix já aplicado, precisa
+   deploy + teste real no celular ou DevTools).
 2. Validar a precisão de verdade: gravar o **mesmo** trecho de ~1 min e comparar com o
    resultado antigo. Sem isso não dá para afirmar que melhorou.
 3. Retestar o Meet na extensão (recarregar em `chrome://extensions` + **fixar o ícone**).
