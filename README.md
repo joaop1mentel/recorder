@@ -1,5 +1,5 @@
 # Recorder + Translator
-
+**Ainda em fase de teste**
 Gravador de **conversas presenciais** com **transcrição e tradução offline** (no
 dispositivo). Dois alvos, um só núcleo de lógica: **extensão de navegador**
 (desktop) e **app de celular** (Android/iOS).
